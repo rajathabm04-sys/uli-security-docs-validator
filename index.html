@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ULI Security Document Validator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #ce5441 0%, #e67361 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #ce5441;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #64748b;
+            font-size: 1.1em;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #ce5441;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            color: #ce5441;
+            font-size: 1.4em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #ce5441;
+        }
+        
+        .doc-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .doc-box {
+            border: 3px solid #e5e7eb;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f9fafb;
+        }
+        
+        .doc-box:hover {
+            border-color: #ce5441;
+            background: #fff5f3;
+            transform: translateY(-2px);
+        }
+        
+        .doc-box.selected {
+            border-color: #ce5441;
+            background: #ffe8e5;
+            border-width: 4px;
+        }
+        
+        .doc-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .doc-name {
+            font-weight: bold;
+            color: #1e293b;
+            font-size: 1.05em;
+        }
+        
+        .upload-section {
+            border: 4px dashed #ce5441;
+            padding: 40px;
+            text-align: center;
+            border-radius: 12px;
+            background: #fff5f3;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        
+        .upload-section:hover {
+            background: #ffe8e5;
+            border-color: #2563eb;
+        }
+        
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+        
+        input[type="file"] {
+            display: block;
+            margin: 15px auto;
+            padding: 10px;
+            font-size: 16px;
+        }
+        
+        .file-info {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .btn-validate {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ce5441 0%, #e67361 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(206, 84, 65, 0.3);
+        }
+        
+        .btn-validate:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .btn-validate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(206, 84, 65, 0.4);
+        }
+        
+        .requirements {
+            background: #fef3c7;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #f59e0b;
+            margin: 20px 0;
+        }
+        
+        .requirements h3 {
+            color: #92400e;
+            margin-bottom: 12px;
+        }
+        
+        .requirements ul {
+            margin-left: 20px;
+            color: #78350f;
+        }
+        
+        .requirements li {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        
+        .results {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .results.show { display: block; }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .status-badge {
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .status-pass { background: #d1fae5; color: #065f46; }
+        .status-fail { background: #fee2e2; color: #991b1b; }
+        .status-warning { background: #fef3c7; color: #92400e; }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .summary-card {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .summary-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        
+        .summary-label {
+            color: #64748b;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .check {
+            border-left: 5px solid #e5e7eb;
+            padding: 18px;
+            margin: 12px 0;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .check.pass { border-left-color: #10b981; }
+        .check.fail { border-left-color: #ef4444; }
+        .check.warning { border-left-color: #f59e0b; }
+        .check.critical { border-left-color: #ce5441; border-left-width: 8px; }
+        
+        .check-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .check-icon { font-size: 1.5em; }
+        
+        .check-title {
+            font-weight: bold;
+            color: #1e293b;
+            flex: 1;
+        }
+        
+        .check-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .check-badge.pass { background: #d1fae5; color: #065f46; }
+        .check-badge.fail { background: #fee2e2; color: #991b1b; }
+        .check-badge.warning { background: #fef3c7; color: #92400e; }
+        .check-badge.critical { background: #ce5441; color: white; }
+        
+        .check-msg {
+            color: #475569;
+            margin-left: 42px;
+            line-height: 1.6;
+        }
+        
+        .critical-alert {
+            background: #fee2e2;
+            border: 2px solid #ce5441;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .critical-alert h3 {
+            color: #991b1b;
+            margin-bottom: 10px;
+        }
+        
+        .critical-alert p {
+            color: #7f1d1d;
+            line-height: 1.6;
+        }
+        
+        .btn-reset {
+            width: 100%;
+            padding: 15px;
+            background: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        
+        .btn-reset:hover {
+            background: #4b5563;
+        }
+    
+        .logo {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+        }
+        
+        .header-content {
+            flex: 1;
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+        
+        .security-note {
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #ce5441;
+        }
+        
+        .security-note strong {
+            color: #ce5441;
+        }
+    
+        @media (max-width: 968px) {
+            .doc-grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="data:image/jpeg;base64,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" alt="RBIH Logo" class="logo">
+            <div class="header-content">
+                <h1>🔐 ULI Security Document Validator</h1>
+                <p>IP/URL Whitelisting - L1 Validation Tool</p>
+                <span class="badge">⚠️ ALL DOCUMENTS MANDATORY</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Step 1: Select Document Type</h2>
+            <div class="doc-grid">
+                <div class="doc-box" onclick="selectDoc('antimalware')">
+                    <div class="doc-icon">🛡️</div>
+                    <div class="doc-name">Anti-Malware Solution</div>
+                </div>
+                <div class="doc-box" onclick="selectDoc('architecture')">
+                    <div class="doc-icon">📐</div>
+                    <div class="doc-name">Architecture Diagram</div>
+                </div>
+                <div class="doc-box" onclick="selectDoc('vapt')">
+                    <div class="doc-icon">🔍</div>
+                    <div class="doc-name">VAPT Report</div>
+                </div>
+            </div>
+            
+            <div id="requirements" class="requirements" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+            <h2>Step 2: Upload Document</h2>
+            <div class="upload-section">
+                <div class="upload-icon">📤</div>
+                <div style="font-size: 1.3em; font-weight: bold; margin-bottom: 10px;">
+                    Click to Upload Document
+                </div>
+                <div style="color: #64748b;">Supports: PDF, DOCX, TXT</div>
+                <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt">
+            </div>
+            <div class="file-info" id="fileInfo"></div>
+            <div class="security-note">
+                <strong>🔒 Privacy & Security:</strong> All documents are processed locally in your browser. 
+                No data is uploaded to any server. Your documents remain 100% private and secure on your computer.
+            </div>
+            
+            <button class="btn-validate" id="validateBtn" disabled onclick="validate()">
+                🔍 VALIDATE DOCUMENT
+            </button>
+        </div>
+
+        <div class="results" id="results"></div>
+        
+        <div class="footer">
+            <div>Reserve Bank Innovation Hub (RBIH)</div>
+            <div style="margin-top: 5px; opacity: 0.9;">ULI Platform - Security Document Validation Tool</div>
+        </div>
+    </div>
+
+    <script>
+        let selectedType = null;
+        let selectedFile = null;
+        let fileContent = null;
+
+        // Complete validation rules based on actual IFTAS checklist
+        const RULES = {
+            antimalware: {
+                name: "Anti-Malware Solution",
+                requirements: [
+                    "MANDATORY for any source module integrated with ULI",
+                    "Report or detailed writeup of implemented solution",
+                    "Screenshots of deployment",
+                    "Anti-ransomware controls demonstrated",
+                    "Required regardless of hosting location (cloud or on-premise)",
+                    "If cloud (AWS/Azure): justification on threat mitigation"
+                ],
+                checks: [
+                    {
+                        name: "Anti-Malware Vendor/Product Identified",
+                        critical: true,
+                        validate: (txt) => {
+                            const vendors = [
+                                'symantec', 'mcafee', 'kaspersky', 'trend micro', 'sophos',
+                                'crowdstrike', 'microsoft defender', 'windows defender', 'defender',
+                                'eset', 'bitdefender', 'avast', 'norton', 'fortinet', 'palo alto',
+                                'sentinel', 'carbon black', 'malwarebytes', 'webroot', 'avg'
+                            ];
+                            const found = vendors.filter(v => new RegExp(v, 'i').test(txt));
+                            return {
+                                pass: found.length > 0,
+                                msg: found.length > 0 
+                                    ? `✓ Vendor identified: ${found[0]}` 
+                                    : "✗ CRITICAL: No anti-malware vendor/product identified in document"
+                            };
+                        }
+                    },
+                    {
+                        name: "Deployment Screenshots/Artifacts",
+                        critical: true,
+                        validate: (txt) => {
+                            const evidence = ['screenshot', 'deployed', 'installation', 'dashboard', 'console', 'interface', 'artifact'];
+                            const found = evidence.filter(e => new RegExp(e, 'i').test(txt));
+                            return {
+                                pass: found.length >= 2,
+                                msg: found.length >= 2
+                                    ? `✓ Deployment evidence found: ${found.slice(0, 2).join(', ')}`
+                                    : found.length === 1
+                                        ? `⚠ Limited evidence (only: ${found[0]})`
+                                        : "✗ CRITICAL: No deployment screenshots or artifacts"
+                            };
+                        }
+                    },
+                    {
+                        name: "Anti-Ransomware Controls",
+                        critical: true,
+                        validate: (txt) => {
+                            const controls = /(ransomware|backup|recovery|protection.*ransomware)/i;
+                            return {
+                                pass: controls.test(txt),
+                                msg: controls.test(txt)
+                                    ? "✓ Anti-ransomware controls mentioned"
+                                    : "✗ CRITICAL: Anti-ransomware controls not demonstrated (specific concern for SaaS)"
+                            };
+                        }
+                    },
+                    {
+                        name: "Cloud Threat Mitigation (if applicable)",
+                        critical: false,
+                        validate: (txt) => {
+                            const isCloud = /(aws|azure|cloud.*host|host.*cloud)/i.test(txt);
+                            if (!isCloud) return { pass: true, msg: "✓ Not cloud-hosted (N/A)" };
+                            
+                            const hasMitigation = /(threat.*mitigate|security.*measure|external.*threat|cloud.*security)/i.test(txt);
+                            return {
+                                pass: hasMitigation,
+                                msg: hasMitigation
+                                    ? "✓ Cloud threat mitigation justification provided"
+                                    : "✗ Cloud-hosted: Must provide justification on external threat mitigation"
+                            };
+                        }
+                    },
+                    {
+                        name: "Coverage Details (Systems Protected)",
+                        critical: false,
+                        validate: (txt) => {
+                            const coverage = /(server|workstation|endpoint|device|system|host|machine)/gi;
+                            const matches = txt.match(coverage);
+                            const hasCount = /\d+\s*(server|workstation|endpoint|device)/i.test(txt);
+                            return {
+                                pass: matches && matches.length >= 3,
+                                msg: matches && matches.length >= 3
+                                    ? `✓ Coverage scope documented${hasCount ? ' with counts' : ''}`
+                                    : "⚠ Coverage scope unclear - specify protected systems"
+                            };
+                        }
+                    }
+                ]
+            },
+
+            architecture: {
+                name: "Network/Architecture Diagram",
+                requirements: [
+                    "Visual representation of application/network/data flow",
+                    "Must include CBS, LOS, LMS, and relevant applications",
+                    "CLEARLY highlights system integrating with ULI",
+                    "Shows communication & integration with ULI environment",
+                    "Demonstrates how source module interacts with ULI",
+                    "Includes writeup on data flow and API interactions",
+                    "Explanation/justification on architecture"
+                ],
+                checks: [
+                    {
+                        name: "ULI Platform Integration Shown",
+                        critical: true,
+                        validate: (txt) => {
+                            const hasULI = /ULI|unified.*lending.*interface/i.test(txt);
+                            return {
+                                pass: hasULI,
+                                msg: hasULI
+                                    ? "✓ ULI platform integration mentioned"
+                                    : "✗ CRITICAL: ULI platform integration not clearly shown"
+                            };
+                        }
+                    },
+                    {
+                        name: "Core Systems Identified (CBS/LOS/LMS)",
+                        critical: true,
+                        validate: (txt) => {
+                            const systems = {
+                                CBS: /(CBS|core.*banking.*system)/i.test(txt),
+                                LOS: /(LOS|loan.*origination.*system)/i.test(txt),
+                                LMS: /(LMS|loan.*management.*system)/i.test(txt)
+                            };
+                            const found = Object.entries(systems).filter(([k,v]) => v).map(([k,v]) => k);
+                            return {
+                                pass: found.length >= 1,
+                                msg: found.length >= 1
+                                    ? `✓ Core systems identified: ${found.join(', ')}`
+                                    : "✗ CRITICAL: CBS/LOS/LMS not identified in diagram"
+                            };
+                        }
+                    },
+                    {
+                        name: "Communication & Integration Flow",
+                        critical: true,
+                        validate: (txt) => {
+                            const flow = ['integration', 'communication', 'flow', 'data flow', 'api', 'connection', 'interact'];
+                            const found = flow.filter(f => new RegExp(f, 'i').test(txt));
+                            return {
+                                pass: found.length >= 3,
+                                msg: found.length >= 3
+                                    ? `✓ Integration flow documented (${found.slice(0, 3).join(', ')})`
+                                    : "✗ CRITICAL: Communication/integration flow not clearly shown"
+                            };
+                        }
+                    },
+                    {
+                        name: "Data Flow & API Interactions",
+                        critical: true,
+                        validate: (txt) => {
+                            const hasDataFlow = /(data.*flow|API.*interaction|endpoint|request|response)/i.test(txt);
+                            const hasWriteup = /(writeup|explanation|description|detail)/i.test(txt);
+                            return {
+                                pass: hasDataFlow,
+                                msg: hasDataFlow && hasWriteup
+                                    ? "✓ Data flow with detailed writeup"
+                                    : hasDataFlow
+                                        ? "⚠ Data flow shown but detailed writeup unclear"
+                                        : "✗ CRITICAL: Data flow and API interactions not documented"
+                            };
+                        }
+                    },
+                    {
+                        name: "Architecture Explanation/Justification",
+                        critical: false,
+                        validate: (txt) => {
+                            const hasExplanation = /(explanation|justification|description|how.*work|architecture.*detail)/i.test(txt);
+                            return {
+                                pass: hasExplanation,
+                                msg: hasExplanation
+                                    ? "✓ Architecture explanation provided"
+                                    : "⚠ Architecture explanation/justification not clear"
+                            };
+                        }
+                    }
+                ]
+            },
+
+            vapt: {
+                name: "VAPT Report",
+                requirements: [
+                    "FULL comprehensive report by CERT-IN empaneled auditor",
+                    "Application VA/PT for apps connecting with ULI",
+                    "Must include BOTH VA and PT",
+                    "Risk Summary Table (Risk Level, Impact, Status)",
+                    "All vulnerabilities listed including LOW (with closure)",
+                    "Valid for ONE YEAR for permanent whitelisting",
+                    "Must NOT be older than 6 months from submission",
+                    "Clear report - Low findings NOT acceptable if impact is high",
+                    "Must match source module technical details"
+                ],
+                checks: [
+                    {
+                        name: "CERT-IN Empaneled Auditor",
+                        critical: true,
+                        validate: (txt) => {
+                            const hasCert = /(CERT.*IN|empaneled|certified|auditor|assessor)/i.test(txt);
+                            const hasCreds = /(CEH|OSCP|CISSP|CISA|CREST)/i.test(txt);
+                            return {
+                                pass: hasCert || hasCreds,
+                                msg: hasCert || hasCreds
+                                    ? "✓ Auditor credentials/certification mentioned"
+                                    : "✗ CRITICAL: CERT-IN empaneled auditor not verified"
+                            };
+                        }
+                    },
+                    {
+                        name: "Report Date (Within 6 Months)",
+                        critical: true,
+                        validate: (txt) => {
+                            const year = new Date().getFullYear();
+                            const lastYear = year - 1;
+                            const hasRecent = new RegExp(`(${lastYear}|${year})`, 'g').test(txt);
+                            
+                            // Check for specific months
+                            const months = ['january', 'february', 'march', 'april', 'may', 'june', 
+                                          'july', 'august', 'september', 'october', 'november', 'december'];
+                            const currentMonth = new Date().getMonth();
+                            const recentMonths = months.slice(Math.max(0, currentMonth - 6), currentMonth + 1);
+                            const hasRecentMonth = recentMonths.some(m => new RegExp(m, 'i').test(txt));
+                            
+                            return {
+                                pass: hasRecent,
+                                msg: hasRecent && hasRecentMonth
+                                    ? "✓ Report appears recent (within 6 months)"
+                                    : hasRecent
+                                        ? "⚠ Report from this year but verify it's within 6 months"
+                                        : "✗ CRITICAL: Report must not be older than 6 months"
+                            };
+                        }
+                    },
+                    {
+                        name: "Both VA and PT Included",
+                        critical: true,
+                        validate: (txt) => {
+                            const hasVA = /(vulnerability.*assessment|VA)/i.test(txt);
+                            const hasPT = /(penetration.*test|PT|pentest)/i.test(txt);
+                            return {
+                                pass: hasVA && hasPT,
+                                msg: hasVA && hasPT
+                                    ? "✓ Both VA and PT documented"
+                                    : !hasVA && !hasPT
+                                        ? "✗ CRITICAL: Missing both VA and PT"
+                                        : "✗ CRITICAL: Missing " + (!hasVA ? "VA" : "PT")
+                            };
+                        }
+                    },
+                    {
+                        name: "Risk Summary Table",
+                        critical: true,
+                        validate: (txt) => {
+                            const hasTable = /(risk.*summary|summary.*table|vulnerability.*summary)/i.test(txt);
+                            const risks = /(critical|high|medium|low).*risk/gi;
+                            const matches = txt.match(risks);
+                            const hasImpact = /impact/i.test(txt);
+                            const hasStatus = /(status|closed|open|resolved)/i.test(txt);
+                            
+                            return {
+                                pass: hasTable && matches && matches.length >= 3 && hasImpact && hasStatus,
+                                msg: hasTable && matches && matches.length >= 3 && hasImpact && hasStatus
+                                    ? `✓ Risk Summary Table complete (${matches.length} risk levels, impact, status)`
+                                    : "✗ CRITICAL: Risk Summary Table incomplete or missing"
+                            };
+                        }
+                    },
+                    {
+                        name: "Low Findings Impact Check",
+                        critical: true,
+                        validate: (txt) => {
+                            const hasLow = /(low.*finding|low.*vulnerability|severity.*low)/i.test(txt);
+                            if (!hasLow) return { pass: true, msg: "✓ No low findings mentioned" };
+                            
+                            const hasHighImpact = /(high.*impact|impact.*high|critical.*impact)/i.test(txt);
+                            const hasClosed = /(closed|resolved|mitigated|remediated)/i.test(txt);
+                            
+                            return {
+                                pass: !hasHighImpact && hasClosed,
+                                msg: !hasHighImpact && hasClosed
+                                    ? "✓ Low findings present with acceptable impact and closure"
+                                    : hasHighImpact
+                                        ? "✗ CRITICAL: Low findings with HIGH impact - NOT ACCEPTABLE per IFTAS"
+                                        : "✗ CRITICAL: Low findings must show closure status"
+                            };
+                        }
+                    },
+                    {
+                        name: "All Vulnerabilities Closed with Conclusion",
+                        critical: true,
+                        validate: (txt) => {
+                            const closure = ['closed', 'resolved', 'mitigated', 'remediated', '100%', 'all.*closed'];
+                            const found = closure.filter(c => new RegExp(c, 'i').test(txt));
+                            const hasConclusion = /(conclusion|summary|clearance)/i.test(txt);
+                            
+                            return {
+                                pass: found.length >= 2 && hasConclusion,
+                                msg: found.length >= 2 && hasConclusion
+                                    ? `✓ Closure documented with conclusion (${found.slice(0, 2).join(', ')})`
+                                    : "✗ CRITICAL: All vulnerabilities must be closed with conclusion"
+                            };
+                        }
+                    },
+                    {
+                        name: "Source Module Technical Details Match",
+                        critical: true,
+                        validate: (txt) => {
+                            const tech = ['IP', 'URL', 'domain', 'server', 'application', 'API', 'endpoint', 'port'];
+                            const found = tech.filter(t => new RegExp(t, 'i').test(txt));
+                            return {
+                                pass: found.length >= 3,
+                                msg: found.length >= 3
+                                    ? `✓ Technical details present (${found.slice(0, 3).join(', ')})`
+                                    : "✗ CRITICAL: VAPT must match source module technical details (IPs/URLs connecting to ULI)"
+                            };
+                        }
+                    }
+                ]
+            }
+        };
+
+        function selectDoc(type) {
+            selectedType = type;
+            document.querySelectorAll('.doc-box').forEach(b => b.classList.remove('selected'));
+            event.target.closest('.doc-box').classList.add('selected');
+            
+            const rules = RULES[type];
+            const reqDiv = document.getElementById('requirements');
+            reqDiv.innerHTML = `
+                <h3>📋 ${rules.name} - Requirements</h3>
+                <ul>${rules.requirements.map(r => `<li>${r}</li>`).join('')}</ul>
+            `;
+            reqDiv.style.display = 'block';
+            
+            updateBtn();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                document.getElementById('fileInfo').innerHTML = `
+                    <strong>📄 ${selectedFile.name}</strong><br>
+                    Size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                `;
+                document.getElementById('fileInfo').style.display = 'block';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fileContent = e.target.result;
+                };
+                reader.readAsText(selectedFile);
+                
+                updateBtn();
+            }
+        });
+
+        function updateBtn() {
+            document.getElementById('validateBtn').disabled = !(selectedType && selectedFile);
+        }
+
+        function validate() {
+            if (!fileContent || fileContent.length < 50) {
+                alert('⚠️ Cannot extract text from this file.\n\nPlease ensure:\n- PDF is text-based (not scanned image)\n- DOCX is properly formatted\n- File is not corrupted');
+                return;
+            }
+
+            const rules = RULES[selectedType];
+            const results = rules.checks.map(check => {
+                const result = check.validate(fileContent);
+                return { name: check.name, critical: check.critical, ...result };
+            });
+
+            displayResults(rules.name, results);
+        }
+
+        function displayResults(docName, results) {
+            const passed = results.filter(r => r.pass).length;
+            const failed = results.filter(r => !r.pass).length;
+            const criticalFails = results.filter(r => !r.pass && r.critical).length;
+            
+            const status = criticalFails > 0 ? 'fail' : failed > 0 ? 'warning' : 'pass';
+            const statusText = criticalFails > 0 
+                ? `❌ ${criticalFails} CRITICAL FAILURES` 
+                : failed > 0 
+                    ? `⚠️ ${failed} Issues Found`
+                    : '✅ All Checks Passed';
+
+            let html = `
+                <div class="result-header">
+                    <h2 style="margin:0;">${docName}</h2>
+                    <span class="status-badge status-${status}">${statusText}</span>
+                </div>
+
+                <div class="summary">
+                    <div class="summary-card">
+                        <div class="summary-value" style="color:#10b981;">${passed}</div>
+                        <div class="summary-label">Passed</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value" style="color:#ef4444;">${failed}</div>
+                        <div class="summary-label">Failed</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value" style="color:#dc2626;">${criticalFails}</div>
+                        <div class="summary-label">Critical</div>
+                    </div>
+                </div>
+            `;
+
+            results.forEach(r => {
+                const st = !r.pass ? (r.critical ? 'critical' : 'fail') : 'pass';
+                const icon = !r.pass ? '❌' : '✅';
+                const badge = !r.pass ? (r.critical ? 'CRITICAL' : 'FAILED') : 'PASSED';
+                
+                html += `
+                    <div class="check ${st}">
+                        <div class="check-header">
+                            <span class="check-icon">${icon}</span>
+                            <span class="check-title">${r.name}</span>
+                            <span class="check-badge ${st}">${badge}</span>
+                        </div>
+                        <div class="check-msg">${r.msg}</div>
+                    </div>
+                `;
+            });
+
+            if (criticalFails > 0) {
+                html += `
+                    <div class="critical-alert">
+                        <h3>⚠️ CRITICAL FAILURES DETECTED</h3>
+                        <p>This document has <strong>${criticalFails} critical failure(s)</strong> and will be <strong>REJECTED by IFTAS</strong>.</p>
+                        <p><strong>Action Required:</strong> Address all critical issues before submission. Remember - <strong>ALL documents are MANDATORY</strong> and lack of any document will halt the overall integration.</p>
+                    </div>
+                `;
+            }
+
+            html += '<button class="btn-reset" onclick="reset()">🔄 Validate Another Document</button>';
+
+            document.getElementById('results').innerHTML = html;
+            document.getElementById('results').classList.add('show');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function reset() {
+            selectedType = null;
+            selectedFile = null;
+            fileContent = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('requirements').style.display = 'none';
+            document.querySelectorAll('.doc-box').forEach(b => b.classList.remove('selected'));
+            document.getElementById('results').classList.remove('show');
+            updateBtn();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
